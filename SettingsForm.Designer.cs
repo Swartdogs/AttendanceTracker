@@ -33,6 +33,9 @@ namespace AttendanceTracker
             this._mentorCodeTextBox = new System.Windows.Forms.TextBox();
             this._okButton = new System.Windows.Forms.Button();
             this._cancelButton = new System.Windows.Forms.Button();
+            this._studentFileLabel = new System.Windows.Forms.Label();
+            this._studentFileTextBox = new System.Windows.Forms.TextBox();
+            this._studentFileBrowseButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // _mentorCodeLabel
@@ -56,7 +59,7 @@ namespace AttendanceTracker
             // 
             // _okButton
             // 
-            this._okButton.Location = new System.Drawing.Point(54, 51);
+            this._okButton.Location = new System.Drawing.Point(47, 100);
             this._okButton.Name = "_okButton";
             this._okButton.Size = new System.Drawing.Size(75, 23);
             this._okButton.TabIndex = 4;
@@ -67,7 +70,7 @@ namespace AttendanceTracker
             // _cancelButton
             // 
             this._cancelButton.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this._cancelButton.Location = new System.Drawing.Point(135, 51);
+            this._cancelButton.Location = new System.Drawing.Point(128, 100);
             this._cancelButton.Name = "_cancelButton";
             this._cancelButton.Size = new System.Drawing.Size(75, 23);
             this._cancelButton.TabIndex = 5;
@@ -75,11 +78,42 @@ namespace AttendanceTracker
             this._cancelButton.UseVisualStyleBackColor = true;
             this._cancelButton.Click += new System.EventHandler(this.CancelButton_Click);
             // 
+            // _studentFileLabel
+            // 
+            this._studentFileLabel.AutoSize = true;
+            this._studentFileLabel.Location = new System.Drawing.Point(12, 48);
+            this._studentFileLabel.Name = "_studentFileLabel";
+            this._studentFileLabel.Size = new System.Drawing.Size(66, 13);
+            this._studentFileLabel.TabIndex = 7;
+            this._studentFileLabel.Text = "Student File:";
+            // 
+            // _studentFileTextBox
+            // 
+            this._studentFileTextBox.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this._studentFileTextBox.Location = new System.Drawing.Point(12, 64);
+            this._studentFileTextBox.Name = "_studentFileTextBox";
+            this._studentFileTextBox.Size = new System.Drawing.Size(143, 20);
+            this._studentFileTextBox.TabIndex = 8;
+            // 
+            // _studentFileBrowseButton
+            // 
+            this._studentFileBrowseButton.Location = new System.Drawing.Point(161, 62);
+            this._studentFileBrowseButton.Name = "_studentFileBrowseButton";
+            this._studentFileBrowseButton.Size = new System.Drawing.Size(75, 23);
+            this._studentFileBrowseButton.TabIndex = 9;
+            this._studentFileBrowseButton.Text = "Browse";
+            this._studentFileBrowseButton.UseVisualStyleBackColor = true;
+            this._studentFileBrowseButton.Click += new System.EventHandler(this.StudentFileBrowseButton_Click);
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(248, 83);
+            this.ClientSize = new System.Drawing.Size(248, 132);
+            this.Controls.Add(this._studentFileBrowseButton);
+            this.Controls.Add(this._studentFileTextBox);
+            this.Controls.Add(this._studentFileLabel);
             this.Controls.Add(this._cancelButton);
             this.Controls.Add(this._okButton);
             this.Controls.Add(this._mentorCodeTextBox);
@@ -101,5 +135,8 @@ namespace AttendanceTracker
         private System.Windows.Forms.TextBox _mentorCodeTextBox;
         private System.Windows.Forms.Button _okButton;
         private System.Windows.Forms.Button _cancelButton;
+        private System.Windows.Forms.Label _studentFileLabel;
+        private System.Windows.Forms.TextBox _studentFileTextBox;
+        private System.Windows.Forms.Button _studentFileBrowseButton;
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -9,19 +10,29 @@ namespace AttendanceTracker
 {
     public partial class AttendanceForm : Form
     {
-        private static readonly string DEFAULT_MENTOR_CODE = "0000";
+        // Two minutes to form auto-lock
+        private const int LOCK_TIME = 120000;
 
-        private string                       _mentorCode;
+        private Settings                     _settings;
         private List<Button>                 _mentorButtons;
-        private Dictionary<string, Student>  _students;
+        private IDictionary<string, Student> _students;
         private bool                         _locked;
+        private readonly Timer               _lockTimer = new Timer();
 
         public AttendanceForm()
         {
             InitializeComponent();
 
-            _locked     = true;
-            _mentorCode = DEFAULT_MENTOR_CODE;
+            _settings = Settings.Load();
+
+            if (_settings is null)
+            {
+                CreateSettings();
+            }
+
+            LoadStudents();
+
+            _locked = true;
 
             _mentorButtons = new List<Button>()
             {
@@ -30,15 +41,11 @@ namespace AttendanceTracker
                 _removeStudentButton
             };
 
-            _students = new Dictionary<string, Student>()
-            {
-                { "0", new Student("Seran",  "Wrap") },
-                { "1", new Student("Silver", "Ware") }
-            };
-
             ResetStudentDataGridView();
-
             SetColumnEnabled(Student.SelectedColumnName, false);
+
+            _lockTimer.Interval = LOCK_TIME;
+            _lockTimer.Tick += new EventHandler(LockTimerElapsed);
         }
 
         public void UnlockForm()
@@ -47,6 +54,7 @@ namespace AttendanceTracker
             SetMenuStripEnabled(true);
             SetMentorButtonsEnabled(true);
             SetColumnEnabled(Student.SelectedColumnName, true);
+            _lockTimer.Enabled = true;
         }
 
         public void LockForm()
@@ -55,6 +63,7 @@ namespace AttendanceTracker
             SetMenuStripEnabled(false);
             SetMentorButtonsEnabled(false);
             SetColumnEnabled(Student.SelectedColumnName, false);
+            _lockTimer.Enabled = false;
         }
 
         public void CheckIn()
@@ -65,7 +74,7 @@ namespace AttendanceTracker
             if (!string.IsNullOrWhiteSpace(id))
             {
 
-                if (id == _mentorCode)
+                if (id == _settings.MentorCode.Value)
                 {
                     if (_locked)
                     {
@@ -85,13 +94,15 @@ namespace AttendanceTracker
 
                 else
                 {
-                    var newStudentForm = new NewStudentForm(_mentorCode);
+                    var newStudentForm = new NewStudentForm(_settings.MentorCode.Value);
                     var result = newStudentForm.ShowDialog();
 
                     if (result == DialogResult.OK)
                     {
                         _students.Add(id, newStudentForm.NewStudent);
                         newStudentForm.NewStudent.CheckIn(true);
+
+                        StudentFile.WriteToFile(_students, _settings.StudentFile.Value);
                     }
 
                     bool visible = false;
@@ -109,19 +120,24 @@ namespace AttendanceTracker
             _studentDataGridView.Refresh();
         }
 
-        public void ForceCheckout()
+        public void ConfirmForceCheckout()
         {
             var result = MessageBox.Show("Confirming will force check out ALL students. Are you sure?", "Force Checkout", MessageBoxButtons.OKCancel);
 
             if (result == DialogResult.OK)
             {
-                foreach (var student in _students.Values.Where(s => s.CheckedIn))
-                {
-                    student.CheckIn(false);
-                }
-
-                _studentDataGridView.Refresh();
+                ForceCheckout();
             }
+        }
+
+        public void ForceCheckout()
+        {
+            foreach (var student in _students.Values.Where(s => s.CheckedIn))
+            {
+                student.CheckIn(false);
+            }
+
+            _studentDataGridView.Refresh();
         }
 
         public void RemoveStudents()
@@ -130,9 +146,17 @@ namespace AttendanceTracker
 
             if (confirm == DialogResult.OK)
             {
+                var studentsRemoved = false;
+
                 foreach (string key in _students.Where(s => s.Value.Selected).Select(s => s.Key).ToArray())
                 {
                     _students.Remove(key);
+                    studentsRemoved = true;
+                }
+
+                if (studentsRemoved)
+                {
+                    StudentFile.WriteToFile(_students, _settings.StudentFile.Value);
                 }
 
                 ResetStudentDataGridView();
@@ -156,6 +180,8 @@ namespace AttendanceTracker
             {
                 control.Top += (enabled ? 1 : -1) * _settingsStrip.Height;
             }
+
+            _studentDataGridView.Height += (enabled ? -1 : 1) * _settingsStrip.Height;
         }
 
         public void SetMentorButtonsEnabled(bool enabled)
@@ -199,31 +225,52 @@ namespace AttendanceTracker
             SetColumnAutoSizeMode(Student.CheckedInColumnName, DataGridViewAutoSizeColumnMode.Fill);
         }
 
-        private void SubmitButton_Click(object sender, EventArgs e)
+        public void CreateSettings()
+        {
+            MessageBox.Show($"Settings file not found. One will be created at {Settings.SETTINGS_FILE_PATH}", "Create Settings File");
+
+            Directory.CreateDirectory(Settings.SETTINGS_FOLDER_PATH);
+
+            _settings = new Settings();
+            _settings.Reset();
+            _settings.Write();
+        }
+
+        public void CreateStudentsFile()
+        {
+            MessageBox.Show($"Students file not found at {_settings.StudentFile.Value}. One will be created.", "Create Students File");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(_settings.StudentFile.Value));
+
+            StudentFile.WriteToFile(null, _settings.StudentFile.Value);
+            _students = new Dictionary<string, Student>();
+        }
+
+        public void SubmitButton_Click(object sender, EventArgs e)
         {
             CheckIn();
             _idTextBox.Focus();
         }
 
-        private void LockButton_Click(object sender, EventArgs e)
+        public void LockButton_Click(object sender, EventArgs e)
         {
             LockForm();
             _idTextBox.Focus();
         }
 
-        private void ForceCheckoutButton_Click(object sender, EventArgs e)
+        public void ForceCheckoutButton_Click(object sender, EventArgs e)
         {
-            ForceCheckout();
+            ConfirmForceCheckout();
             _idTextBox.Focus();
         }
 
-        private void RemoveStudentButton_Click(object sender, EventArgs e)
+        public void RemoveStudentButton_Click(object sender, EventArgs e)
         {
             RemoveStudents();
             _idTextBox.Focus();
         }
 
-        private void IdTextBox_KeyUp(object sender, KeyEventArgs e)
+        public void IdTextBox_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter && ActiveForm == this)
             {
@@ -232,12 +279,12 @@ namespace AttendanceTracker
             }
         }
 
-        private void StudentDataGridView_SelectionChanged(object sender, EventArgs e)
+        public void StudentDataGridView_SelectionChanged(object sender, EventArgs e)
         {
             _studentDataGridView.ClearSelection();
         }
 
-        private void StudentDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
+        public void StudentDataGridView_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
             var student = _studentDataGridView.Rows[e.RowIndex].DataBoundItem as Student;
 
@@ -258,20 +305,40 @@ namespace AttendanceTracker
             }
         }
 
-        private void SettingsStripSettings_Click(object sender, EventArgs e)
+        public void SettingsStripSettings_Click(object sender, EventArgs e)
         {
-            var settingsForm = new SettingsForm(_mentorCode);
-            var result = settingsForm.ShowDialog();
+            var result = new SettingsForm(_settings).ShowDialog();
 
-            switch (result)
+            if (result == DialogResult.OK)
             {
-                case DialogResult.OK:
-                    _mentorCode = settingsForm.NewMentorCode;
-                    break;
+                if (_settings.StudentFile.Changed)
+                {
+                    ForceCheckout();
+                }
 
-                default:
-                    break;
+                _settings.Save();
+                _settings.Write();
+
+                LoadStudents();
+
+                ResetStudentDataGridView();
+                SetColumnEnabled(Student.SelectedColumnName, false);
             }
+        }
+
+        public void LoadStudents()
+        {
+            _students = StudentFile.ReadFromFile(_settings.StudentFile.Value);
+
+            if (_students is null)
+            {
+                CreateStudentsFile();
+            }
+        }
+
+        private void LockTimerElapsed(object sender, EventArgs e)
+        {
+            LockForm();
         }
     }
 }
