@@ -20,10 +20,14 @@ namespace AttendanceTracker
         [JsonProperty("studentFile")]
         public Setting StudentFile { get; } = new Setting(AttendanceTracker.StudentFile.DEFAULT_STUDENT_FILE);
 
+        [JsonProperty("attendanceFile")]
+        public Setting AttendanceFile { get; } = new Setting(AttendanceSheet.DEFAULT_ATTENDANCE_FILE);
+
         public IEnumerable<Setting> GetAllSettings()
         {
             yield return MentorCode;
             yield return StudentFile;
+            yield return AttendanceFile;
         }
 
         public bool Changed()
@@ -47,7 +51,7 @@ namespace AttendanceTracker
 
             if (File.Exists(SETTINGS_FILE_PATH))
             {
-                settings = File.ReadAllText(SETTINGS_FILE_PATH).Decrypt<Settings>();
+                settings = File.ReadAllText(SETTINGS_FILE_PATH).DecryptJson<Settings>();
             }
 
             return settings;
@@ -55,7 +59,7 @@ namespace AttendanceTracker
 
         public void Write()
         {
-            File.WriteAllText(SETTINGS_FILE_PATH, this.Encrypt());
+            File.WriteAllText(SETTINGS_FILE_PATH, this.EncryptJson());
         }
     }
 }

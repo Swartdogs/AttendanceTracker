@@ -16,6 +16,7 @@ namespace AttendanceTracker
         private Settings                     _settings;
         private List<Button>                 _mentorButtons;
         private IDictionary<string, Student> _students;
+        private AttendanceSheet              _attendance;
         private bool                         _locked;
         private readonly Timer               _lockTimer = new Timer();
 
@@ -31,6 +32,7 @@ namespace AttendanceTracker
             }
 
             LoadStudents();
+            LoadAttendance();
 
             _locked = true;
 
@@ -89,7 +91,15 @@ namespace AttendanceTracker
 
                 else if (_students.ContainsKey(id))
                 {
-                    _students[id].CheckIn(!_students[id].CheckedIn);
+                    if (_students[id].CheckedIn)
+                    {
+                        _attendance.AddRecord(_students[id].CheckOut(false));
+                        _attendance.WriteToFile(_settings.AttendanceFile.Value);
+                    }
+                    else
+                    {
+                        _students[id].CheckIn();
+                    }
                 }
 
                 else
@@ -100,7 +110,7 @@ namespace AttendanceTracker
                     if (result == DialogResult.OK)
                     {
                         _students.Add(id, newStudentForm.NewStudent);
-                        newStudentForm.NewStudent.CheckIn(true);
+                        newStudentForm.NewStudent.CheckIn();
 
                         StudentFile.WriteToFile(_students, _settings.StudentFile.Value);
                     }
@@ -134,8 +144,10 @@ namespace AttendanceTracker
         {
             foreach (var student in _students.Values.Where(s => s.CheckedIn))
             {
-                student.CheckIn(false);
+                _attendance.AddRecord(student.CheckOut(true));
             }
+
+            _attendance.WriteToFile(_settings.AttendanceFile.Value);
 
             _studentDataGridView.Refresh();
         }
@@ -246,6 +258,16 @@ namespace AttendanceTracker
             _students = new Dictionary<string, Student>();
         }
 
+        public void CreateAttendanceFile()
+        {
+            MessageBox.Show($"Attendance file not found at {_settings.AttendanceFile.Value}. One will be created.", "Create Attendance File");
+
+            Directory.CreateDirectory(Path.GetDirectoryName(_settings.AttendanceFile.Value));
+
+            _attendance = new AttendanceSheet();
+            _attendance.WriteToFile(_settings.AttendanceFile.Value);
+        }
+
         public void SubmitButton_Click(object sender, EventArgs e)
         {
             CheckIn();
@@ -333,6 +355,16 @@ namespace AttendanceTracker
             if (_students is null)
             {
                 CreateStudentsFile();
+            }
+        }
+
+        public void LoadAttendance()
+        {
+            _attendance = AttendanceSheet.ReadFromFile(_settings.AttendanceFile.Value);
+
+            if (_attendance is null)
+            {
+                CreateAttendanceFile();
             }
         }
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Text;
 
 using Newtonsoft.Json;
@@ -8,14 +7,24 @@ namespace AttendanceTracker
 {
     public static class Extensions
     {
-        public static string Encrypt<T>(this T toEncrypt)
+        public static string EncryptJson<T>(this T toEncrypt)
         {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(toEncrypt)));
+            return JsonConvert.SerializeObject(toEncrypt).Encrypt();
         }
 
-        public static T Decrypt<T>(this string toDecrypt)
+        public static string Encrypt(this string toEncrypt)
         {
-            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(Convert.FromBase64String(toDecrypt)));
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(toEncrypt));
+        }
+
+        public static T DecryptJson<T>(this string toDecrypt)
+        {
+            return JsonConvert.DeserializeObject<T>(toDecrypt.Decrypt());
+        }
+
+        public static string Decrypt(this string toDecrypt)
+        {
+            return Encoding.UTF8.GetString(Convert.FromBase64String(toDecrypt));
         }
     }
 }

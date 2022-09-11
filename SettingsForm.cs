@@ -22,8 +22,9 @@ namespace AttendanceTracker
 
             _settingDescriptions = new Dictionary<Setting, Tuple<TextBox, string>>()
             {
-                { _settings.MentorCode,  Tuple.Create(_mentorCodeTextBox,  "Mentor code")  },
-                { _settings.StudentFile, Tuple.Create(_studentFileTextBox, "Student file") }
+                { _settings.MentorCode,     Tuple.Create(_mentorCodeTextBox,     "Mentor code")     },
+                { _settings.StudentFile,    Tuple.Create(_studentFileTextBox,    "Student file")    },
+                { _settings.AttendanceFile, Tuple.Create(_attendanceFileTextBox, "Attendance file") }
             };
 
             foreach (var kvp in _settingDescriptions)
@@ -94,6 +95,22 @@ namespace AttendanceTracker
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
                     _studentFileTextBox.Text = openFileDialog.FileName;
+                }
+            }
+        }
+
+        private void AttendanceFileBrowseButton_Click(object sender, EventArgs e)
+        {
+            using (var openFileDialog = new OpenFileDialog())
+            {
+                openFileDialog.InitialDirectory = Path.GetDirectoryName(_settings.AttendanceFile.Value);
+                openFileDialog.Filter = "Attendance sheet files (*.att)|*.att|All files (*.*)|*.*";
+                openFileDialog.FilterIndex = 1;
+                openFileDialog.RestoreDirectory = true;
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    _attendanceFileTextBox.Text = openFileDialog.FileName;
                 }
             }
         }

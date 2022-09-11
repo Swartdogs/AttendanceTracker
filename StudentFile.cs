@@ -25,7 +25,7 @@ namespace AttendanceTracker
 
             if (File.Exists(filePath))
             {
-                file = File.ReadAllText(filePath).Decrypt<StudentFile>();
+                file = File.ReadAllText(filePath).DecryptJson<StudentFile>();
             }
 
             return file?.Students;
@@ -38,7 +38,7 @@ namespace AttendanceTracker
 
         public void WriteToFile(string filePath)
         {
-            File.WriteAllText(filePath, this.Encrypt());
+            File.WriteAllText(filePath, this.EncryptJson());
         }
     }
 }

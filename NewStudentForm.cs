@@ -35,7 +35,7 @@ namespace AttendanceTracker
             } 
             else
             {
-                NewStudent = new Student(_firstNameTextBox.Text.Trim(), _lastNameTextBox.Text.Trim());
+                NewStudent = new Student(_firstNameTextBox.Text.Trim(), _lastNameTextBox.Text.Trim(), _emailTextBox.Text.Trim());
                 DialogResult = DialogResult.OK;
                 Close();
             }
