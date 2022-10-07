@@ -8,8 +8,9 @@ namespace AttendanceTracker
         public Student NewStudent { get; private set; }
 
         private readonly string _mentorCode;
+        private readonly string _id;
 
-        public NewStudentForm(string mentorCode)
+        public NewStudentForm(string mentorCode, string id)
         {
             InitializeComponent();
 
@@ -17,6 +18,7 @@ namespace AttendanceTracker
             DialogResult = DialogResult.None;
 
             _mentorCode = mentorCode;
+            _id         = id;
         }
 
         private void OkButton_Click(object sender, EventArgs e)
@@ -35,7 +37,7 @@ namespace AttendanceTracker
             } 
             else
             {
-                NewStudent = new Student(_firstNameTextBox.Text.Trim(), _lastNameTextBox.Text.Trim(), _emailTextBox.Text.Trim());
+                NewStudent = new Student(_firstNameTextBox.Text.Trim(), _lastNameTextBox.Text.Trim(), _emailTextBox.Text.Trim(), _id);
                 DialogResult = DialogResult.OK;
                 Close();
             }
