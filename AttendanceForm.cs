@@ -13,12 +13,12 @@ namespace AttendanceTracker
         // Two minutes to form auto-lock
         private const int LOCK_TIME = 120000;
 
-        private Settings                     _settings;
-        private List<Button>                 _mentorButtons;
-        private IDictionary<string, Student> _students;
-        private AttendanceSheet              _attendance;
-        private bool                         _locked;
-        private readonly Timer               _lockTimer = new Timer();
+        private Settings             _settings;
+        private List<Button>         _mentorButtons;
+        private ICollection<Student> _students;
+        private AttendanceSheet      _attendance;
+        private bool                 _locked;
+        private readonly Timer       _lockTimer = new Timer();
 
         public AttendanceForm()
         {
@@ -40,11 +40,11 @@ namespace AttendanceTracker
             {
                 _lockButton,
                 _forceCheckoutButton,
-                _removeStudentButton
+                _removeStudentButton,
+                _editStudentsButton
             };
 
             ResetStudentDataGridView();
-            SetColumnEnabled(Student.SelectedColumnName, false);
 
             _lockTimer.Interval = LOCK_TIME;
             _lockTimer.Tick += new EventHandler(LockTimerElapsed);
@@ -75,6 +75,7 @@ namespace AttendanceTracker
 
             if (!string.IsNullOrWhiteSpace(id))
             {
+                Student student;
 
                 if (id == _settings.MentorCode.Value)
                 {
@@ -89,27 +90,27 @@ namespace AttendanceTracker
                     }
                 }
 
-                else if (_students.ContainsKey(id))
+                else if ((student = _students.FirstOrDefault(s => s.ID == id)) != null)
                 {
-                    if (_students[id].CheckedIn)
+                    if (student.CheckedIn)
                     {
-                        _attendance.AddRecord(_students[id].CheckOut(false));
+                        _attendance.AddRecord(student.CheckOut(false));
                         _attendance.WriteToFile(_settings.AttendanceFile.Value);
                     }
                     else
                     {
-                        _students[id].CheckIn();
+                        student.CheckIn();
                     }
                 }
 
                 else
                 {
-                    var newStudentForm = new NewStudentForm(_settings.MentorCode.Value);
+                    var newStudentForm = new NewStudentForm(_settings.MentorCode.Value, id);
                     var result = newStudentForm.ShowDialog();
 
                     if (result == DialogResult.OK)
                     {
-                        _students.Add(id, newStudentForm.NewStudent);
+                        _students.Add(newStudentForm.NewStudent);
                         newStudentForm.NewStudent.CheckIn();
 
                         StudentFile.WriteToFile(_students, _settings.StudentFile.Value);
@@ -127,7 +128,7 @@ namespace AttendanceTracker
                 }
             }
 
-            _studentDataGridView.Refresh();
+            ResetStudentDataGridView();
         }
 
         public void ConfirmForceCheckout()
@@ -142,7 +143,7 @@ namespace AttendanceTracker
 
         public void ForceCheckout()
         {
-            foreach (var student in _students.Values.Where(s => s.CheckedIn))
+            foreach (var student in _students.Where(s => s.CheckedIn))
             {
                 _attendance.AddRecord(student.CheckOut(true));
             }
@@ -160,9 +161,9 @@ namespace AttendanceTracker
             {
                 var studentsRemoved = false;
 
-                foreach (string key in _students.Where(s => s.Value.Selected).Select(s => s.Key).ToArray())
+                foreach (var student in _students.Where(s => s.Selected).ToArray())
                 {
-                    _students.Remove(key);
+                    _students.Remove(student);
                     studentsRemoved = true;
                 }
 
@@ -181,14 +182,11 @@ namespace AttendanceTracker
             _settingsStrip.Visible = enabled;
             _settingsStrip.Enabled = enabled;
 
-            foreach (var control in new Control[] { 
+            foreach (var control in Enumerable.Concat(new Control[] { 
                 _idTextBox,
                 _submitButton,
-                _lockButton,
-                _forceCheckoutButton,
-                _removeStudentButton,
                 _studentDataGridView
-            })
+            }, _mentorButtons))
             {
                 control.Top += (enabled ? 1 : -1) * _settingsStrip.Height;
             }
@@ -229,12 +227,18 @@ namespace AttendanceTracker
         public void ResetStudentDataGridView()
         {
             _studentDataGridView.DataSource = typeof(Student);
-            _studentDataGridView.DataSource = new BindingSource(_students.Values.OrderBy(s => s.FirstName).ThenBy(s => s.LastName), null);
+            _studentDataGridView.DataSource = new BindingSource(_students.OrderBy(s => s.FirstName).ThenBy(s => s.LastName), null);
 
-            SetColumnAutoSizeMode(Student.SelectedColumnName,  DataGridViewAutoSizeColumnMode.AllCells);
-            SetColumnAutoSizeMode(Student.FirstNameColumnName, DataGridViewAutoSizeColumnMode.AllCells);
-            SetColumnAutoSizeMode(Student.LastNameColumnName,  DataGridViewAutoSizeColumnMode.AllCells);
-            SetColumnAutoSizeMode(Student.CheckedInColumnName, DataGridViewAutoSizeColumnMode.Fill);
+            SetColumnAutoSizeMode(Student.SelectedColumnName,    DataGridViewAutoSizeColumnMode.AllCells);
+            SetColumnAutoSizeMode(Student.FirstNameColumnName,   DataGridViewAutoSizeColumnMode.AllCells);
+            SetColumnAutoSizeMode(Student.LastNameColumnName,    DataGridViewAutoSizeColumnMode.AllCells);
+            SetColumnAutoSizeMode(Student.CheckInTimeColumnName, DataGridViewAutoSizeColumnMode.AllCells);
+            SetColumnAutoSizeMode(Student.CheckedInColumnName,   DataGridViewAutoSizeColumnMode.Fill);
+
+            if (_locked)
+            {
+                SetColumnEnabled(Student.SelectedColumnName, false);
+            }
         }
 
         public void CreateSettings()
@@ -255,7 +259,7 @@ namespace AttendanceTracker
             Directory.CreateDirectory(Path.GetDirectoryName(_settings.StudentFile.Value));
 
             StudentFile.WriteToFile(null, _settings.StudentFile.Value);
-            _students = new Dictionary<string, Student>();
+            _students = new List<Student>();
         }
 
         public void CreateAttendanceFile()
@@ -371,6 +375,26 @@ namespace AttendanceTracker
         private void LockTimerElapsed(object sender, EventArgs e)
         {
             LockForm();
+        }
+
+        private void EditStudentsButton_Click(object sender, EventArgs e)
+        {
+            var save = false;
+
+            foreach (var student in _students.Where(s => s.Selected))
+            {
+                var form = new EditStudentForm(student);
+                
+                if (form.ShowDialog() == DialogResult.OK)
+                {
+                    save = true;
+                }
+            }
+
+            if (save)
+            {
+                StudentFile.WriteToFile(_students, _settings.StudentFile.Value);
+            }
         }
     }
 }

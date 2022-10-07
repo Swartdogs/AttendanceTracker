@@ -57,6 +57,12 @@
       <DependentUpon>AttendanceForm.cs</DependentUpon>
     </Compile>
     <Compile Include="AttendanceSheet.cs" />
+    <Compile Include="EditStudentForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EditStudentForm.Designer.cs">
+      <DependentUpon>EditStudentForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="Extensions.cs" />
     <Compile Include="NewStudentForm.cs">
       <SubType>Form</SubType>
@@ -79,6 +85,9 @@
     <EmbeddedResource Include="AttendanceForm.resx">
       <DependentUpon>AttendanceForm.cs</DependentUpon>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EditStudentForm.resx">
+      <DependentUpon>EditStudentForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="NewStudentForm.resx">
       <DependentUpon>NewStudentForm.cs</DependentUpon>
